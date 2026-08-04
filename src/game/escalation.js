@@ -338,7 +338,10 @@ export function createEscalation({ residents, town, gameState, CFG, gore, player
     // stage 4: cordon countdown — the run ends unless the women are all turned
     if (s.stage >= 4) {
       cordonT -= dt;
+      s.cordonDeadline = cordonT; // HUD reads this for the visible countdown
       if (cordonT <= 0) endCordon();
+    } else {
+      s.cordonDeadline = 0;
     }
   }
 

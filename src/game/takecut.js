@@ -26,7 +26,26 @@ export function createTakeDirector(camera, player) {
     savedPos.copy(camera.position);
     savedQuat.copy(camera.quaternion);
     shakeSeed = Math.random() * 100;
+    if (takeMode === 'kill') bloodFlash(0.55);
     return true;
+  }
+
+  // blood flash: full-screen dark red pulse on kill cuts — first-person gore
+  // that the angled bursts can't give (they're biased past the camera)
+  let bloodEl = null;
+  function bloodFlash(strength) {
+    if (mode !== 'kill') return;
+    if (!bloodEl) {
+      bloodEl = document.createElement('div');
+      bloodEl.style.cssText = `
+        position: fixed; inset: 0; z-index: 25; pointer-events: none;
+        background: radial-gradient(ellipse at 50% 60%, rgba(74,10,8,0.55), rgba(40,4,3,0.25) 55%, transparent 80%);
+        opacity: 0; transition: opacity 90ms;
+      `;
+      document.getElementById('hud').appendChild(bloodEl);
+    }
+    bloodEl.style.opacity = String(strength);
+    setTimeout(() => { bloodEl.style.opacity = '0'; }, 260);
   }
 
   // first-person framing: her eyes, target's face/chest filling frame
@@ -66,6 +85,14 @@ export function createTakeDirector(camera, player) {
       camera.position.x += Math.sin(s * 1.7) * amp * 0.4;
       camera.position.y += Math.sin(s * 2.3 + 1) * amp * 0.3;
       camera.rotation.z += Math.sin(s * 1.3) * amp * 0.12;
+      // blood pulses at the burst beats so the first-person frame reads red
+      if (mode === 'kill') {
+        const holdLen2 = CFG.take.holdSec;
+        for (const beat of [0.15, 0.4, 0.7]) {
+          const bt = beat * holdLen2;
+          if (t >= bt && t - dt < bt) bloodFlash(beat === 0.4 ? 0.8 : 0.55);
+        }
+      }
       const holdLen = mode === 'kill' ? CFG.take.holdSec : CFG.take.holdSec * 0.6;
       if (t >= holdLen) { state = 'cutOut'; t = 0; }
     } else if (state === 'cutOut') {

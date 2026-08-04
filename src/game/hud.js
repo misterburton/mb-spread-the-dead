@@ -63,6 +63,16 @@ export function createHUD(root, gameState) {
     const maxEv = CFG.escalation.thresholds[CFG.escalation.thresholds.length - 1];
     evFill.style.width = `${Math.min(1, s.evidence / maxEv) * 100}%`;
     stageEl.textContent = STAGES[s.stage].toUpperCase();
+    // cordon countdown: visible teeth for the final stage
+    if (s.stage >= 4 && s.cordonDeadline > 0) {
+      const left = Math.max(0, s.cordonDeadline);
+      stageEl.textContent = `CORDON ${left.toFixed(0)}s`;
+      stageEl.style.color = left < 20 ? '#d45a4a' : '#c9a04a';
+      stageEl.style.fontSize = '16px';
+    } else if (!s.over) {
+      stageEl.style.color = '#8a8474';
+      stageEl.style.fontSize = '12px';
+    }
     hordeEl.textContent = `HORDE ${s.hordeSize} · WOMEN ${s.womenConverted}/${s.womenTotal}`;
     if (s.over) {
       stageEl.textContent = s.over === 'win' ? 'THE LINEAGE IS COMPLETE' :

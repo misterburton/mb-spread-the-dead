@@ -315,9 +315,11 @@ const frame = (render = true) => {
 if (simParam !== null) {
   // pacing sim: rAF does NOT advance under --virtual-time-budget in new
   // headless Chrome, but setTimeout chains fast-forward perfectly. Drive the
-  // loop with 16ms timers; render 1 tick in 30 (pacing needs state, not pixels).
+  // loop with 16ms timers. ?sim=fast renders 1 tick in 30 (pacing needs state,
+  // not pixels); ?sim (real-time) renders every tick so frame captures and
+  // human observation see truthful pixels.
   let n = 0;
-  const step = () => { frame(++n % 30 === 0); setTimeout(step, 16); };
+  const step = () => { frame(SIM_DT === 1 ? true : ++n % 30 === 0); setTimeout(step, 16); };
   step();
 } else {
   renderer.setAnimationLoop(() => frame(true));
