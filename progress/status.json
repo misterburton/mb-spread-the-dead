@@ -1,25 +1,19 @@
 {
-  "updated": "2026-08-04T18:30Z",
-  "commit": "7c5a2e3",
-  "wave": 6,
+  "updated": "2026-08-04T19:35Z",
+  "commit": "fb23f1a",
+  "wave": 7,
   "pieces": [
-    {
-      "name": "engine/bootstrap",
-      "status": "pass",
-      "summary": "WebGPURenderer + WebGL2 fallback. Low-res RT upscale, TSL grade/dither/vignette, fog-as-draw-distance murk.",
-      "shots": ["shots/desktop-webgl.png"]
-    },
-    { "name": "input/pointer+twin-stick", "status": "pass", "summary": "Unified pointer events: twin-stick touch + context button, pointerlock mouse + WASD." },
-    { "name": "world/town", "status": "pass", "summary": "Textured town: procedural 64px nearest-filtered textures, porches, shutters, lit windows, church, graveyard w/ key light, navGrid.", "shots": ["shots/desktop-webgl.png", "shots/graveyard-webgl.png"] },
-    { "name": "characters/faces", "status": "pass", "summary": "Sphere heads w/ jaw taper, 32px face textures (man/woman/pale/turned), hair per archetype, tattered player silhouette.", "shots": ["shots/desktop-webgl.png"] },
-    { "name": "tsl/era effects", "status": "pass", "summary": "Vertex jitter on ALL materials (verified 26% px delta); affine warp WebGPU-only (GLSL noperspective breaks SwiftShader).", "shots": ["shots/era-check-normal.png", "shots/era-check-strong.png"] },
-    { "name": "ai/residents+horde", "status": "pass", "summary": "60 NPCs staggered think; horde hunts women autonomously, exponential spread, rings player when lineage complete." },
-    { "name": "gore/visceral", "status": "pass", "summary": "Dismemberment w/ persistent thrown limbs, wall spray, timed take bursts + drips, arterial trails, body pools, model staining." },
-    { "name": "take-cut/first-person", "status": "pass", "summary": "Hard cut to first-person per take, lurch, handheld shake, snap back. Kiss/kill decided by target." },
-    { "name": "hud/bars+prompt", "status": "pass", "summary": "Hunger/rot/evidence bars, stage, horde counts, KISS/KILL context prompt." },
-    { "name": "escalation/town states", "status": "pass", "summary": "Clustering, armed men w/ rifles + fire, pallbearer screening, cordon roadblocks + timer." },
-    { "name": "audio/CC0 pack + director", "status": "pass", "summary": "22 CC0 files, kill=impact+wet+breath+tail. Director: positional horde converts, dread drone by stage, heartbeat, stings.",
-      "audio": [
+    { "name": "engine/bootstrap", "status": "pass", "summary": "WebGPURenderer + WebGL2 fallback. Low-res RT, TSL grade/dither/vignette, fog murk.", "shots": ["shots/desktop-webgl.png"] },
+    { "name": "input/pointer+twin-stick", "status": "pass", "summary": "Unified pointer events, twin-stick touch + context button, pointerlock + WASD." },
+    { "name": "world/town", "status": "pass", "summary": "Textured town, porches, lit windows, church, graveyard key light, navGrid.", "shots": ["shots/desktop-webgl.png", "shots/graveyard-webgl.png"] },
+    { "name": "characters/faces", "status": "pass", "summary": "Sphere heads, face textures, hair archetypes, tattered player." },
+    { "name": "tsl/era effects", "status": "pass", "summary": "Vertex jitter everywhere (26% px delta); affine WebGPU-only.", "shots": ["shots/era-check-strong.png"] },
+    { "name": "ai/residents+horde", "status": "pass", "summary": "60 NPCs; horde exponential converts; flee-turned at all stages." },
+    { "name": "gore/visceral", "status": "pass", "summary": "Dismemberment w/ persistent limbs, wall spray, 4-beat take bursts, trails, pools, staining." },
+    { "name": "take-cut/first-person", "status": "pass", "summary": "Hard cut, lurch, shake, snap-back; blood-flash pulses at burst beats (feel critic PASS).", "shots": ["shots/feel-take-cutin.png", "shots/feel-take-hold.png", "shots/feel-take-snapout.png"] },
+    { "name": "hud/bars+prompt", "status": "pass", "summary": "Hunger/rot/evidence bars, KISS/KILL prompt, CORDON countdown (feel critic gap fixed)." },
+    { "name": "escalation/town states", "status": "pass", "summary": "Clustering, armed aim+fire, pallbearer screening, cordon roadblocks + visible timer. DREAD: PASS.", "shots": ["shots/feel-stage2-armed.png", "shots/feel-stage3-hunt.png"] },
+    { "name": "audio/CC0 pack + director", "status": "pass", "summary": "22 CC0 files; positional horde converts, dread drone by stage, heartbeat, stings.", "audio": [
         { "label": "impact — wet towel punch", "src": "audio/impact_01_wet_towel_floor_impact_punch_drop_bag_cl.ogg" },
         { "label": "wet — flesh squelched", "src": "audio/wet_02_flesh_being_squelched_wav.ogg" },
         { "label": "breath — monster breath", "src": "audio/breath_01_monster_breath_1_wav.ogg" },
@@ -28,7 +22,9 @@
         { "label": "convert — creepy whisper", "src": "audio/convert_01_ascend_with_us_creepy_whisper.ogg" }
       ]
     },
-    { "name": "mood/critic", "status": "wip", "round": 6, "maxRounds": 6, "summary": "R6 (final) judging now: fog murk + graveyard key light fixed R5 gaps." },
-    { "name": "smoothing+perf", "status": "wip", "summary": "Integration conflict hunt + pacing sim + frame budget harness running." }
+    { "name": "mood/critic", "status": "pass", "summary": "Street + tablet frames PASS ('reads Silent Hill 1' — fog-as-draw-distance, textured, sick grade). Graveyard re-vantaged to face stones+town.", "shots": ["shots/desktop-webgl.png", "shots/graveyard-webgl.png"] },
+    { "name": "feel/critic", "status": "pass", "summary": "DREAD pass (stages announce before biting, cause→effect readable), TAKE-CUT pass (hard cut, intimate, clean snap-out). Gaps fixed.", "shots": ["shots/feel-stage2-fired.png"] },
+    { "name": "perf", "status": "pass", "summary": "p95 update 0.60ms < 8ms budget; AI thinks 0.03ms < 2ms. PASS." },
+    { "name": "pacing/sim", "status": "pass", "summary": "Sim autopilot run: stages 0.9/2.8/5.3min, win ~8-14min with stage-3 screening pressure. Tight dread arc." }
   ]
 }
