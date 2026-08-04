@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STD — build progress</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background: #0a0b0c; color: #c9cfc9; font: 14px/1.5 -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; max-width: 900px; }
+  h1 { font-size: 18px; letter-spacing: 0.08em; color: #8a948a; }
+  h2 { font-size: 14px; letter-spacing: 0.06em; color: #7a847a; margin-top: 28px; border-bottom: 1px solid #222; padding-bottom: 4px; }
+  .card { background: #101314; border: 1px solid #1e2422; border-radius: 8px; padding: 12px; margin: 10px 0; }
+  .status { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; margin-left: 8px; }
+  .pass { background: #17351f; color: #7fce8f; }
+  .fail { background: #3d1717; color: #e08a8a; }
+  .wip { background: #33330f; color: #d4d484; }
+  .queue { background: #1a1d24; color: #8a94a8; }
+  img.shot { width: 100%; border-radius: 6px; image-rendering: pixelated; margin-top: 8px; }
+  audio { width: 100%; height: 32px; margin-top: 6px; }
+  .meta { color: #5a645a; font-size: 12px; }
+  a { color: #7fa8c9; }
+  .gap { color: #e0b08a; font-size: 13px; margin-top: 6px; }
+  #updated { color: #5a645a; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>SPREAD THE DEAD — build progress</h1>
+<div id="updated">loading…</div>
+<div id="root"></div>
+<script>
+async function load() {
+  const r = await fetch('./status.json?t=' + Date.now());
+  const d = await r.json();
+  document.getElementById('updated').textContent =
+    'updated ' + d.updated + ' · commit ' + (d.commit || '?') + ' · wave ' + d.wave;
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+  for (const p of d.pieces) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <div><strong>${p.name}</strong>
+        <span class="status ${p.status}">${p.status}${p.round ? ' r' + p.round + '/' + p.maxRounds : ''}</span>
+      </div>
+      <div class="meta">${p.summary || ''}</div>
+      ${p.gap ? `<div class="gap">gap → ${p.gap}</div>` : ''}
+      ${(p.shots || []).map(s => `<img class="shot" loading="lazy" src="${s}" alt="">`).join('')}
+      ${(p.audio || []).map(a => `<div class="meta">${a.label || a.src}</div><audio controls preload="none" src="${a.src}"></audio>`).join('')}
+    `;
+    root.appendChild(el);
+  }
+}
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

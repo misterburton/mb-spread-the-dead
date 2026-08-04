@@ -1,0 +1,24 @@
+{
+  "updated": "2026-08-04T06:12Z",
+  "commit": "eb7f4de",
+  "wave": 0,
+  "pieces": [
+    {
+      "name": "engine/bootstrap",
+      "status": "pass",
+      "summary": "WebGPURenderer + WebGL2 fallback both verified headless. Low-res RT upscale, TSL grade/dither/vignette live. SwiftShader WebGPU can't present headless (env limitation); WebGL2 screenshot verified, WebGPU codepath identical through node system.",
+      "shots": ["shots/desktop-webgl.png"]
+    },
+    { "name": "input/pointer+twin-stick", "status": "queue", "summary": "one pointer-event path, mouse+touch, twin-stick + context button" },
+    { "name": "world/town+player traversal", "status": "queue" },
+    { "name": "tsl/vertex jitter + affine warp", "status": "queue" },
+    { "name": "characters/procedural residents", "status": "queue" },
+    { "name": "ai/npc states + pallbearers", "status": "queue" },
+    { "name": "gore/kills, bodies, blood persistence", "status": "queue" },
+    { "name": "take-cut/first-person intimacy", "status": "queue" },
+    { "name": "hud/hunger-rot-evidence bars", "status": "queue" },
+    { "name": "escalation/evidence-driven town states", "status": "queue" },
+    { "name": "audio/CC0 sourcing + layering", "status": "queue" },
+    { "name": "mood/grade vs reference stills", "status": "queue" }
+  ]
+}
