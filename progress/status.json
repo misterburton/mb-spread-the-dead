@@ -1,24 +1,24 @@
 {
-  "updated": "2026-08-04T17:45Z",
-  "commit": "c8866a4",
-  "wave": 4,
+  "updated": "2026-08-04T18:30Z",
+  "commit": "7c5a2e3",
+  "wave": 6,
   "pieces": [
     {
       "name": "engine/bootstrap",
       "status": "pass",
-      "summary": "WebGPURenderer + WebGL2 fallback verified headless. Low-res RT upscale, TSL grade/dither/vignette, exposure-lifted night grade.",
+      "summary": "WebGPURenderer + WebGL2 fallback. Low-res RT upscale, TSL grade/dither/vignette, fog-as-draw-distance murk.",
       "shots": ["shots/desktop-webgl.png"]
     },
     { "name": "input/pointer+twin-stick", "status": "pass", "summary": "Unified pointer events: twin-stick touch + context button, pointerlock mouse + WASD." },
-    { "name": "world/town", "status": "pass", "round": 2, "maxRounds": 6, "summary": "Textured town: procedural 64px nearest-filtered textures (siding/brick/shingle/asphalt/concrete/wood/stone), porches, shutters, lit windows, church, graveyard, navGrid.", "shots": ["shots/desktop-webgl.png", "shots/tablet-webgl.png"] },
-    { "name": "characters/factory", "status": "wip", "summary": "Quality pass in flight: readable faces (brow/nose/eyes/mouth or 32px face textures), hair per archetype, tapered bodies, tattered player silhouette." },
-    { "name": "tsl/era effects", "status": "wip", "summary": "Jitter + affine warp being wired into town/character materials with visual verification." },
-    { "name": "ai/residents+horde", "status": "pass", "summary": "60 NPCs staggered think, wander/flee; horde hunts women autonomously, exponential spread." },
-    { "name": "gore/kills+blood", "status": "pass", "summary": "Arterial bursts, persistent decals + trails, body pools, blood stains on her model." },
+    { "name": "world/town", "status": "pass", "summary": "Textured town: procedural 64px nearest-filtered textures, porches, shutters, lit windows, church, graveyard w/ key light, navGrid.", "shots": ["shots/desktop-webgl.png", "shots/graveyard-webgl.png"] },
+    { "name": "characters/faces", "status": "pass", "summary": "Sphere heads w/ jaw taper, 32px face textures (man/woman/pale/turned), hair per archetype, tattered player silhouette.", "shots": ["shots/desktop-webgl.png"] },
+    { "name": "tsl/era effects", "status": "pass", "summary": "Vertex jitter on ALL materials (verified 26% px delta); affine warp WebGPU-only (GLSL noperspective breaks SwiftShader).", "shots": ["shots/era-check-normal.png", "shots/era-check-strong.png"] },
+    { "name": "ai/residents+horde", "status": "pass", "summary": "60 NPCs staggered think; horde hunts women autonomously, exponential spread, rings player when lineage complete." },
+    { "name": "gore/visceral", "status": "pass", "summary": "Dismemberment w/ persistent thrown limbs, wall spray, timed take bursts + drips, arterial trails, body pools, model staining." },
     { "name": "take-cut/first-person", "status": "pass", "summary": "Hard cut to first-person per take, lurch, handheld shake, snap back. Kiss/kill decided by target." },
-    { "name": "hud/bars+prompt", "status": "pass", "summary": "Hunger/rot/evidence bars, stage name, horde + women counts, KISS/KILL context prompt." },
-    { "name": "escalation/town states", "status": "pass", "summary": "Clustering, armed men with rifles + fire, pallbearer screening, cordon roadblocks + timer." },
-    { "name": "audio/CC0 pack", "status": "pass", "summary": "22 files, 100% CC0 (freesound), all 6 events with variants. Kill = impact+wet+breath+tail layers.",
+    { "name": "hud/bars+prompt", "status": "pass", "summary": "Hunger/rot/evidence bars, stage, horde counts, KISS/KILL context prompt." },
+    { "name": "escalation/town states", "status": "pass", "summary": "Clustering, armed men w/ rifles + fire, pallbearer screening, cordon roadblocks + timer." },
+    { "name": "audio/CC0 pack + director", "status": "pass", "summary": "22 CC0 files, kill=impact+wet+breath+tail. Director: positional horde converts, dread drone by stage, heartbeat, stings.",
       "audio": [
         { "label": "impact — wet towel punch", "src": "audio/impact_01_wet_towel_floor_impact_punch_drop_bag_cl.ogg" },
         { "label": "wet — flesh squelched", "src": "audio/wet_02_flesh_being_squelched_wav.ogg" },
@@ -28,6 +28,7 @@
         { "label": "convert — creepy whisper", "src": "audio/convert_01_ascend_with_us_creepy_whisper.ogg" }
       ]
     },
-    { "name": "mood/critic", "status": "wip", "round": 4, "maxRounds": 6, "summary": "R3 gap: 'sterile gray-box voxel diorama' → town textured + relit. R4 judging now." }
+    { "name": "mood/critic", "status": "wip", "round": 6, "maxRounds": 6, "summary": "R6 (final) judging now: fog murk + graveyard key light fixed R5 gaps." },
+    { "name": "smoothing+perf", "status": "wip", "summary": "Integration conflict hunt + pacing sim + frame budget harness running." }
   ]
 }
