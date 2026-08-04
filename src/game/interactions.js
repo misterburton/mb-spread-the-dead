@@ -13,9 +13,12 @@ import { applyTurn, setDeadPose } from '../characters/factory.js';
 
 const FACE_DOT = 0.3;             // "in facing direction" preference threshold
 const CHEST_Y = 1.2;              // burst origin height on the victim
-const SECOND_BURST_AT = 0.4;      // fraction of kill hold for the second burst
+const BURST_15_AT = 0.15;         // fraction of kill hold: second spurt
+const SECOND_BURST_AT = 0.4;      // fraction of kill hold for the third burst
+const BURST_70_AT = 0.7;          // fraction of kill hold: late arterial emptying
+const DRIP_EVERY = 0.4;           // slow blood drip pooling under the victim
 
-export function createInteractions({ player, residents, takeDirector, gore, gameState, audio = null }) {
+export function createInteractions({ player, residents, takeDirector, gore, gameState, audio = null, town = null, dismember = null }) {
   const range2 = CFG.player.interactRange * CFG.player.interactRange;
   const sightRange2 = CFG.npc.sightRange * CFG.npc.sightRange;
   // rough witness cone from the NPC field of view (dot threshold, no raycast)
@@ -59,6 +62,14 @@ export function createInteractions({ player, residents, takeDirector, gore, game
     gore.burst(tp.x, tp.y + CHEST_Y, tp.z, dx / d, dz / d, n, power);
   }
 
+  // initial arterial burst: biased along the player's facing axis so the fan
+  // hoses back at/past the viewer — not a random direction
+  function burstChestAlongFacing(target, n, power) {
+    const tp = target.group.position;
+    const fx = -Math.sin(player.rotation.y), fz = -Math.cos(player.rotation.y);
+    gore.burst(tp.x, tp.y + CHEST_Y, tp.z, fx, fz, n, power);
+  }
+
   // any other living resident with the kill inside their rough sight cone?
   function wasWitnessed(tp) {
     const list = residents.list;
@@ -90,7 +101,7 @@ export function createInteractions({ player, residents, takeDirector, gore, game
   // --- kill: feed, gore, evidence -------------------------------------------
   function startKill(target) {
     target.state = 'taken';
-    kill = { target, phase: 'pre', holdT: 0, burst40: false };
+    kill = { target, phase: 'pre', holdT: 0, burst15: false, burst40: false, burst70: false, dripT: 0 };
     audio?.kill(); // impact+wet+breath+tail layers, fired at cut
     takeDirector.start(target, 'kill', () => {
       finishKill(target);

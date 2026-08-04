@@ -49,8 +49,8 @@ export const CFG = {
   render: {
     ps1ResolutionScale: 0.5,   // low internal resolution, upscaled
     snapVertex: 1 / 220,       // vertex jitter quantization
-    fogColor: 0x0a0b0c,
-    fogDensity: 0.022,
+    fogColor: 0x2d2d2a,           // gray-green murk — fog IS the draw distance
+    fogDensity: 0.030,
     gradeTint: [2.7, 2.85, 2.55],  // desaturated, faint sick green
     exposure: 3.4,                   // heavy lift — PS1 horror is dark but READABLE
     ditherAmount: 1.0,

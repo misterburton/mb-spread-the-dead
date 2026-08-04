@@ -65,6 +65,11 @@ if (startOverride === 'street') {
 }
 scene.add(player);
 
+// graveyard key light: pale cold glow over her open grave — the start must read
+const graveLight = new THREE.PointLight(0x9aa89a, 3.2, 14, 1.4);
+graveLight.position.set(town.playerSpawn.x, 3.4, town.playerSpawn.z);
+scene.add(graveLight);
+
 // systems
 const gameState = createGameState();
 const gore = createGore(scene);

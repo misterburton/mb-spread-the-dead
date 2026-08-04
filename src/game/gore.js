@@ -44,6 +44,58 @@ export function createGore(scene) {
     }
   }
 
+  // --- wall spray: vertical decals on a building face (same capped pool) ---
+  const _we = new THREE.Euler();
+  const _wq = new THREE.Quaternion();
+  const _wp = new THREE.Vector3();
+
+  // thin dark decal offset 0.03 off a wall, facing along (nx,nz)
+  function addWallDecal(x, y, z, nx, nz, w, h) {
+    if (decalCount >= MAX_DECALS) return;
+    _we.set(0, Math.atan2(nx, nz), 0); // plane +z -> outward normal
+    _wq.setFromEuler(_we);
+    _wp.set(x, y, z);
+    ds.set(w, h, 1);
+    dm.compose(_wp, _wq, ds);
+    decals.setMatrixAt(decalCount, dm);
+    decals.count = ++decalCount;
+    decals.instanceMatrix.needsUpdate = true;
+  }
+
+  // kill near a building: 3-6 small dark decals fanned vertically down the
+  // nearest face, heights 0.5-2m. Scalar-only search — no allocations.
+  function wallSpray(x, z, obstacles) {
+    if (!obstacles) return;
+    let best = null, bestD2 = 4; // within 2m
+    for (let i = 0; i < obstacles.length; i++) {
+      const o = obstacles[i];
+      const cx = Math.max(o.minX, Math.min(x, o.maxX));
+      const cz = Math.max(o.minZ, Math.min(z, o.maxZ));
+      const dx = x - cx, dz = z - cz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < bestD2) { bestD2 = d2; best = o; }
+    }
+    if (!best) return;
+    // face whose outward normal points back at the kill
+    const dMinX = Math.abs(x - best.minX), dMaxX = Math.abs(x - best.maxX);
+    const dMinZ = Math.abs(z - best.minZ), dMaxZ = Math.abs(z - best.maxZ);
+    const m = Math.min(dMinX, dMaxX, dMinZ, dMaxZ);
+    let nx = 0, nz = 0, wx = 0, wz = 0, lo = 0, hi = 0, alongZ = false;
+    if (m === dMinX) { nx = -1; wx = best.minX - 0.03; lo = best.minZ; hi = best.maxZ; alongZ = true; }
+    else if (m === dMaxX) { nx = 1; wx = best.maxX + 0.03; lo = best.minZ; hi = best.maxZ; alongZ = true; }
+    else if (m === dMinZ) { nz = -1; wz = best.minZ - 0.03; lo = best.minX; hi = best.maxX; }
+    else { nz = 1; wz = best.maxZ + 0.03; lo = best.minX; hi = best.maxX; }
+    const n = 3 + ((Math.random() * 4) | 0); // 3-6
+    for (let i = 0; i < n; i++) {
+      const t = Math.max(lo + 0.2, Math.min(hi - 0.2, (alongZ ? z : x) + (Math.random() - 0.5) * 1.6));
+      const y = 0.5 + Math.random() * 1.5;
+      const w = 0.1 + Math.random() * 0.16;
+      const h = w * (1.6 + Math.random() * 1.6); // runs downward
+      if (alongZ) addWallDecal(wx, y, t, nx, nz, w, h);
+      else addWallDecal(t, y, wz, nx, nz, w, h);
+    }
+  }
+
   // --- spray particles: instanced quads, CPU-simmed (cheap at this count) ---
   const pGeo = new THREE.PlaneGeometry(0.09, 0.09);
   const pMat = new THREE.MeshBasicNodeMaterial({ color: 0x4a0a08, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
@@ -108,5 +160,5 @@ export function createGore(scene) {
     }
   }
 
-  return { addDecal, addTrail, burst, update, stainCharacter, get decalCount() { return decalCount; } };
+  return { addDecal, addTrail, addWallDecal, wallSpray, burst, update, stainCharacter, get decalCount() { return decalCount; } };
 }
