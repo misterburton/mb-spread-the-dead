@@ -213,7 +213,7 @@ if (simParam !== null) {
 }
 
 // third-person camera state
-let camYaw = Math.PI;
+let camYaw = startOverride === 'street' ? Math.PI : Math.PI * 0.75; // face back over the stones, not the fence
 let camPitch = -0.22;
 const camTarget = new THREE.Vector3();
 
