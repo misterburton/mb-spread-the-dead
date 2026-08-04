@@ -4,6 +4,12 @@ import { createPostPipeline } from './engine/post.js';
 import { createInput } from './engine/input.js';
 import { generateTown, isBlocked } from './world/town.js';
 import { makePlayer, setWalkPhase } from './characters/factory.js';
+import { createResidents } from './game/residents.js';
+import { createTakeDirector } from './game/takecut.js';
+import { createGameState } from './game/state.js';
+import { createHUD } from './game/hud.js';
+import { createGore } from './game/gore.js';
+import { createInteractions } from './game/interactions.js';
 import { CFG } from './config.js';
 
 const canvas = document.getElementById('game');
@@ -41,11 +47,26 @@ const player = makePlayer();
 player.position.set(town.playerSpawn.x, 0, town.playerSpawn.z);
 scene.add(player);
 
+// systems
+const gameState = createGameState();
+const gore = createGore(scene);
+const takeDirector = createTakeDirector(camera, player);
+const residents = createResidents(scene, town, CFG, (r) => {
+  // witness hook — escalation wave will use this
+});
+gameState.state.womenTotal = residents.list.filter((r) => r.role === 'woman').length;
+
+const interactions = createInteractions({
+  player, residents, takeDirector, gore, gameState, audio: null,
+});
+
+const hud = createHUD(document.getElementById('hud'), gameState);
+
 // input
 const input = createInput(canvas, document.getElementById('touch-ui'));
 
 // third-person camera state
-let camYaw = Math.PI;       // facing out of the graveyard
+let camYaw = Math.PI;
 let camPitch = -0.22;
 const camTarget = new THREE.Vector3();
 
@@ -57,40 +78,53 @@ let walkPhase = 0;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  // look
-  camYaw -= input.look.dx * 0.0032;
-  camPitch = THREE.MathUtils.clamp(camPitch - input.look.dy * 0.0028, -0.9, 0.35);
+  gameState.tick(dt);
 
-  // move (camera-relative)
-  const mv = input.move;
-  const spd = CFG.player.speed * (input.sprint ? CFG.player.sprintMul : 1);
-  if (mv.x !== 0 || mv.y !== 0) {
-    const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
-    const dx = (mv.x * cos - mv.y * sin) * spd * dt;
-    const dz = (mv.x * sin + mv.y * cos) * spd * dt;
-    const nx = player.position.x + dx;
-    const nz = player.position.z + dz;
-    if (!isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, nx, player.position.z)) player.position.x = nx;
-    if (!isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, player.position.x, nz)) player.position.z = nz;
-    player.rotation.y = Math.atan2(dx, dz);
-    walkPhase += dt * spd * 2.2;
-    setWalkPhase(player, walkPhase, spd / CFG.player.speed);
-  } else {
-    setWalkPhase(player, 0, 0);
+  if (!takeDirector.busy && !gameState.state.over) {
+    // look
+    camYaw -= input.look.dx * 0.0032;
+    camPitch = THREE.MathUtils.clamp(camPitch - input.look.dy * 0.0028, -0.9, 0.35);
+
+    // move (camera-relative)
+    const mv = input.move;
+    const spd = CFG.player.speed * (input.sprint ? CFG.player.sprintMul : 1);
+    if (mv.x !== 0 || mv.y !== 0) {
+      const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
+      const dx = (mv.x * cos - mv.y * sin) * spd * dt;
+      const dz = (mv.x * sin + mv.y * cos) * spd * dt;
+      const nx = player.position.x + dx;
+      const nz = player.position.z + dz;
+      if (!isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, nx, player.position.z)) player.position.x = nx;
+      if (!isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, player.position.x, nz)) player.position.z = nz;
+      player.rotation.y = Math.atan2(dx, dz);
+      walkPhase += dt * spd * 2.2;
+      setWalkPhase(player, walkPhase, spd / CFG.player.speed);
+    } else {
+      setWalkPhase(player, 0, 0);
+    }
+
+    // interact
+    if (input.interact) interactions.tryInteract();
+
+    // third-person camera follow
+    const cd = CFG.camera.thirdDist, ch = CFG.camera.thirdHeight;
+    const cx = player.position.x - Math.sin(camYaw) * cd * Math.cos(camPitch);
+    const cz = player.position.z - Math.cos(camYaw) * cd * Math.cos(camPitch);
+    const cy = player.position.y + ch - Math.sin(camPitch) * cd;
+    camera.position.set(cx, cy, cz);
+    camTarget.set(
+      player.position.x + Math.sin(camYaw) * 2,
+      player.position.y + 1.4,
+      player.position.z + Math.cos(camYaw) * 2
+    );
+    camera.lookAt(camTarget);
   }
 
-  // third-person camera follow
-  const cd = CFG.camera.thirdDist, ch = CFG.camera.thirdHeight;
-  const cx = player.position.x - Math.sin(camYaw) * cd * Math.cos(camPitch);
-  const cz = player.position.z - Math.cos(camYaw) * cd * Math.cos(camPitch);
-  const cy = player.position.y + ch - Math.sin(camPitch) * cd;
-  camera.position.set(cx, cy, cz);
-  camTarget.set(
-    player.position.x + Math.sin(camYaw) * 2,
-    player.position.y + 1.4,
-    player.position.z + Math.cos(camYaw) * 2
-  );
-  camera.lookAt(camTarget);
+  takeDirector.update(dt);
+  interactions.update(dt);
+  residents.update(dt, player.position);
+  gore.update(dt, camera);
+  hud.update();
 
   input.update();
   post.render();
