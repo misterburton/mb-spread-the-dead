@@ -49,11 +49,14 @@ export function jitterPosition() {
 
 // Affine texture warp: interpolate uv*w with LINEAR (affine) interpolation,
 // divide by w (also linear) in fragment → classic PS1 swimmy textures.
-export function affineUV() {
+// `scale` (optional [sx, sy]) bakes a texture repeat into the affine UV —
+// needed because texture() with an explicit uv node skips the texture matrix.
+export function affineUV(scale = null) {
   const view = cameraViewMatrix.mul(modelWorldMatrix.mul(vec4(positionLocal, 1.0)));
   const w = view.z.negate();
+  const baseUV = scale ? uv().mul(vec2(scale[0], scale[1])) : uv();
   return {
-    uvw: varying(uv().mul(w), 'vAffineUVW').setInterpolation('linear', 'center'),
+    uvw: varying(baseUV.mul(w), 'vAffineUVW').setInterpolation('linear', 'center'),
     w: varying(w, 'vAffineW').setInterpolation('linear', 'center'),
   };
 }

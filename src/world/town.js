@@ -5,19 +5,41 @@ import {
   texSiding, texBrick, texShingle, texAsphalt, texConcrete,
   texGround, texStone, texWood, texWindow,
 } from './textures.js';
+import { jitterPosition, affineUV, affineTexture } from '../engine/era.js';
+
+// Shared clip-space vertex snap (PS1 wobble) — one node graph, applied to
+// every world material below via positionNode.
+const eraJitter = jitterPosition();
 
 const matCache = new Map();
 export function mat(hex) {
-  if (!matCache.has(hex)) matCache.set(hex, new THREE.MeshLambertNodeMaterial({ color: hex }));
+  if (!matCache.has(hex)) {
+    const m = new THREE.MeshLambertNodeMaterial({ color: hex });
+    m.positionNode = eraJitter;
+    matCache.set(hex, m);
+  }
   return matCache.get(hex);
 }
-function tmat(tex, repeat = [1, 1], tint = 0xffffff) {
-  const key = tex.uuid + repeat + tint;
+// affine=true → PS1 non-perspective-correct texture sampling (ground/roads).
+// colorNode replaces materialColor there, so the tint is folded into the node
+// and `map` stays unset; the repeat is baked into the affine UV varying
+// (texture() with an explicit uv node skips the texture matrix).
+function tmat(tex, repeat = [1, 1], tint = 0xffffff, affine = false) {
+  affine = false; // BISECT: temporarily disable affine path
+  const key = tex.uuid + repeat + tint + (affine ? ':a' : '');
   if (!matCache.has(key)) {
     const t = tex.clone();
     t.repeat.set(repeat[0], repeat[1]);
     t.needsUpdate = true;
-    matCache.set(key, new THREE.MeshLambertNodeMaterial({ map: t, color: tint }));
+    let m;
+    if (affine) {
+      m = new THREE.MeshLambertNodeMaterial({ color: tint });
+      m.colorNode = affineTexture(t, affineUV(repeat)).mul(new THREE.Color(tint));
+    } else {
+      m = new THREE.MeshLambertNodeMaterial({ map: t, color: tint });
+    }
+    m.positionNode = eraJitter;
+    matCache.set(key, m);
   }
   return matCache.get(key);
 }
@@ -65,7 +87,7 @@ export function generateTown(scene, CFG) {
   groundTex.repeat.set(R / 2, R / 2);
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(R * 2, R * 2),
-    tmat(groundTex, [1, 1], 0x9aa098)
+    tmat(groundTex, [1, 1], 0x9aa098, true) // affine warp: big flat surface, most visible swim
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.02;
@@ -84,7 +106,7 @@ export function generateTown(scene, CFG) {
     const rt = asphalt.clone();
     rt.repeat.set(r.w / 8, r.d / 8);
     rt.needsUpdate = true;
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), tmat(rt));
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), tmat(rt, [1, 1], 0xffffff, true)); // road: affine warp
     p.rotation.x = -Math.PI / 2;
     p.position.set(r.x, 0.01, r.z);
     group.add(p);
@@ -97,7 +119,7 @@ export function generateTown(scene, CFG) {
       const wt = concrete.clone();
       wt.repeat.set(sw / 3, sd / 3);
       wt.needsUpdate = true;
-      const w2 = new THREE.Mesh(new THREE.BoxGeometry(sw, 0.08, sd), tmat(wt, [1, 1], 0xb0b4ae));
+      const w2 = new THREE.Mesh(new THREE.BoxGeometry(sw, 0.08, sd), tmat(wt, [1, 1], 0xb0b4ae, true)); // sidewalk: affine warp
       w2.position.set(sx, 0.04, sz);
       group.add(w2);
       const len = along === 'z' ? r.d : r.w;
@@ -161,7 +183,9 @@ export function generateTown(scene, CFG) {
     b.add(door);
     // windows with shutters; a few lit
     const winMatDark = new THREE.MeshLambertNodeMaterial({ map: winDark });
+    winMatDark.positionNode = eraJitter;
     const winMatLit = new THREE.MeshLambertNodeMaterial({ map: winLit, emissive: 0x6a6040, emissiveIntensity: 0.55 });
+    winMatLit.positionNode = eraJitter;
     const rows = Math.max(1, Math.floor(h / 2.6));
     for (let wy = 0; wy < rows; wy++) {
       for (let wx = -1; wx <= 1; wx++) {
@@ -218,7 +242,9 @@ export function generateTown(scene, CFG) {
   church.add(spire);
   // arched windows (tall dark planes)
   for (const wx of [-2.6, 0, 2.6]) {
-    const win = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 2.6), new THREE.MeshLambertNodeMaterial({ map: winDark }));
+    const cwMat = new THREE.MeshLambertNodeMaterial({ map: winDark });
+    cwMat.positionNode = eraJitter;
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 2.6), cwMat);
     win.position.set(wx, 3.4, 7.02);
     church.add(win);
   }
@@ -241,7 +267,9 @@ export function generateTown(scene, CFG) {
   const sign = box(7, 1.1, 0.15, tmat(woodTex, [3, 0.5], 0x9a8a68));
   sign.position.set(0, 5.9, 4.15);
   store.add(sign);
-  const storefront = new THREE.Mesh(new THREE.PlaneGeometry(8, 2.2), new THREE.MeshLambertNodeMaterial({ map: winDark }));
+  const sfMat = new THREE.MeshLambertNodeMaterial({ map: winDark });
+  sfMat.positionNode = eraJitter;
+  const storefront = new THREE.Mesh(new THREE.PlaneGeometry(8, 2.2), sfMat);
   storefront.position.set(0, 1.7, 4.02);
   store.add(storefront);
   store.position.set(BS + 12, 0, -BS - 6);
@@ -283,6 +311,7 @@ export function generateTown(scene, CFG) {
   // --- street lamps ---
   const lampM = mat(0x23262a);
   const lampGlow = new THREE.MeshBasicNodeMaterial({ color: 0xb8b39a });
+  lampGlow.positionNode = eraJitter;
   for (let t = -R + 8; t < R - 8; t += 14) {
     for (const [lx, lz] of [[4.8, t], [-4.8, t + 7], [t, 4.8], [t + 7, -4.8]]) {
       if (Math.abs(lx) > R - 4 || Math.abs(lz) > R - 4) continue;

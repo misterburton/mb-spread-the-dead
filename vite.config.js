@@ -7,6 +7,7 @@ export default {
       input: {
         main: 'index.html',
         era: 'test/era.html',
+        chars: 'test/chars.html',
       },
     },
   },

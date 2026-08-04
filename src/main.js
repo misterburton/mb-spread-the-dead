@@ -13,10 +13,17 @@ import { createInteractions } from './game/interactions.js';
 import { createAudio } from './game/audio.js';
 import { createHorde } from './game/horde.js';
 import { createEscalation } from './game/escalation.js';
+import { createFlow } from './game/flow.js';
+import { setJitter } from './engine/era.js';
 import { CFG } from './config.js';
 
 const canvas = document.getElementById('game');
 const renderer = await createRenderer(canvas);
+
+// Era vertex jitter: grid from CFG.render.snapVertex; ?jitter=strong forces a
+// coarse 1/60 grid (visual verification), ?jitter=off disables.
+const jitterParam = new URLSearchParams(location.search).get('jitter');
+setJitter(jitterParam === 'strong' ? 1 / 60 : jitterParam === 'off' ? 0 : CFG.render.snapVertex);
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(CFG.render.fogColor, CFG.render.fogDensity);
@@ -78,6 +85,7 @@ if (audio && escalation.onPlayerShot !== undefined) {
 }
 
 const hud = createHUD(document.getElementById('hud'), gameState);
+const flow = createFlow(document.getElementById('hud'), gameState);
 
 // input
 const input = createInput(canvas, document.getElementById('touch-ui'));
@@ -97,7 +105,7 @@ renderer.setAnimationLoop(() => {
 
   gameState.tick(dt);
 
-  if (!takeDirector.busy && !gameState.state.over) {
+  if (!takeDirector.busy && !gameState.state.over && flow.started) {
     // look
     camYaw -= input.look.dx * 0.0032;
     camPitch = THREE.MathUtils.clamp(camPitch - input.look.dy * 0.0028, -0.9, 0.35);
