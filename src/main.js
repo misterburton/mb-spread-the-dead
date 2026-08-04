@@ -11,6 +11,8 @@ import { createHUD } from './game/hud.js';
 import { createGore } from './game/gore.js';
 import { createInteractions } from './game/interactions.js';
 import { createAudio } from './game/audio.js';
+import { createHorde } from './game/horde.js';
+import { createEscalation } from './game/escalation.js';
 import { CFG } from './config.js';
 
 const canvas = document.getElementById('game');
@@ -64,6 +66,11 @@ const audio = await createAudio().catch(() => null); // non-fatal if fetch fails
 const interactions = createInteractions({
   player, residents, takeDirector, gore, gameState, audio,
 });
+const horde = createHorde({ residents, town, gameState, CFG });
+const escalation = createEscalation({ residents, town, gameState, CFG, gore, player });
+if (audio && escalation.onPlayerShot !== undefined) {
+  escalation.onPlayerShot = () => audio.play('impact', { gain: 0.9, rate: 1.6 }); // rifle crack placeholder
+}
 
 const hud = createHUD(document.getElementById('hud'), gameState);
 
@@ -139,6 +146,8 @@ renderer.setAnimationLoop(() => {
   interactions.update(dt);
   hud.setPrompt(takeDirector.busy ? null : interactions.currentTarget);
   residents.update(dt, player.position);
+  horde.update(dt);
+  escalation.update(dt);
   gore.update(dt, camera);
   hud.update();
 
