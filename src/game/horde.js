@@ -25,6 +25,9 @@ export function createHorde({ residents, town, gameState, CFG }) {
 
   const blockedAt = (x, z) => isBlocked(navGrid, gridSize, origin, cellSize, x, z);
 
+  // perf harness: set by main.js when ?perf=1 — retarget thinks add into thinkMs
+  const perf = (typeof window !== 'undefined' && window.__perf) || null;
+
   // per-member horde state, created lazily when a resident turns
   const members = new Map(); // resident.id -> { victim, thinkTimer }
   const memberOf = (r) => {
@@ -53,9 +56,13 @@ export function createHorde({ residents, town, gameState, CFG }) {
   };
 
   const convert = (victim) => {
+    // belt-and-suspenders: never double-convert. A woman mid-kiss ('taken')
+    // belongs to interactions.js; a turned/dead woman is out of the pool.
+    if (!HUNTABLE[victim.state]) return false;
     applyTurn(victim.group);
     victim.state = 'turned';
-    gameState.spendConvert(); // silent: deliberately NO addEvidence — converts leave no trace
+    gameState.hordeConvert(); // silent: no evidence, and no hunger cost to her
+    return true;
   };
 
   // playerPos optional (Vector3-like {x,z}); needed only for the no-prey drift
@@ -70,7 +77,13 @@ export function createHorde({ residents, town, gameState, CFG }) {
       m.thinkTimer -= dt;
       if (m.thinkTimer <= 0) {
         m.thinkTimer += thinkInterval;
-        m.victim = nearestWoman(pos);
+        if (perf) {
+          const a = performance.now();
+          m.victim = nearestWoman(pos);
+          perf.thinkMs += performance.now() - a;
+        } else {
+          m.victim = nearestWoman(pos);
+        }
       }
       // drop a victim who turned or died since the last think
       if (m.victim && !HUNTABLE[m.victim.state]) m.victim = null;

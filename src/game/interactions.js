@@ -91,12 +91,14 @@ export function createInteractions({ player, residents, takeDirector, gore, game
   // --- kiss: silent convert, no evidence, no body ---------------------------
   function startKiss(target) {
     target.state = 'taken'; // freezes them out of the wander/flee sim
-    takeDirector.start(target, 'kiss', () => {
+    const started = takeDirector.start(target, 'kiss', () => {
       applyTurn(target.group);
       target.state = 'turned';
+      target.playerConverted = true; // audio director: skip positional (we play our own)
       gameState.spendConvert();
       audio?.convert(); // quiet, unsettling — not silent to the player
     });
+    if (!started) target.state = 'idle'; // director busy — don't strand her mid-state
   }
 
   // --- kill: feed, gore, evidence -------------------------------------------
@@ -104,10 +106,11 @@ export function createInteractions({ player, residents, takeDirector, gore, game
     target.state = 'taken';
     kill = { target, phase: 'pre', holdT: 0, burst15: false, burst40: false, burst70: false, dripT: 0 };
     audio?.kill(); // impact+wet+breath+tail layers, fired at cut
-    takeDirector.start(target, 'kill', () => {
+    const started = takeDirector.start(target, 'kill', () => {
       finishKill(target);
       kill = null;
     });
+    if (!started) { target.state = 'idle'; kill = null; } // don't strand him or the choreography
   }
 
   function finishKill(target) {

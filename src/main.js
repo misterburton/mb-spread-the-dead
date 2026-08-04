@@ -27,6 +27,93 @@ const renderer = await createRenderer(canvas);
 const jitterParam = new URLSearchParams(location.search).get('jitter');
 setJitter(jitterParam === 'strong' ? 1 / 60 : jitterParam === 'off' ? 0 : CFG.render.snapVertex);
 
+// --- perf harness (?perf=1) ---------------------------------------------------
+// Ring buffer of the last 600 frame deltas + per-system ms timings, exposed as
+// window.__perf for scripts/perf.mjs. AI think bodies (residents / horde /
+// escalation) add into __perf.thinkMs when it exists.
+// Disabled: cost is one falsy check per system per frame — no closures, no
+// allocs, no timing calls.
+const PERF = new URLSearchParams(location.search).has('perf') ? createPerf() : null;
+window.__perf = PERF;
+
+function createPerf() {
+  const RING = 600;
+  const sys = (name) => ({ name, total: 0, count: 0, max: 0, ring: new Float32Array(RING), ri: 0 });
+  return {
+    frames: new Float32Array(RING),   // frame-time deltas (ms)
+    thinks: new Float32Array(RING),   // aggregate AI think ms per frame
+    n: 0,                             // frames recorded (post-warmup)
+    warmup: 45,                       // discard shader-compile/boot frames
+    thinkMs: 0,                       // accumulated by AI modules during a frame
+    thinkTotal: 0,
+    last: 0, start: 0, sampleStart: 0, done: false,
+    systems: {
+      update: sys('update'), takeDirector: sys('takeDirector'),
+      residents: sys('residents'), horde: sys('horde'),
+      escalation: sys('escalation'), gore: sys('gore'), render: sys('render'),
+    },
+  };
+}
+
+function perfRecord(s, d) {
+  if (PERF.warmup > 0) return; // aligned: every system records once per frame
+  s.total += d; s.count++;
+  if (d > s.max) s.max = d;
+  s.ring[s.ri] = d; s.ri = (s.ri + 1) % 600;
+}
+
+function perfFrameStart() {
+  const now = performance.now();
+  if (PERF.start === 0) { PERF.start = now; PERF.last = now; return; }
+  if (PERF.warmup > 0) {
+    PERF.warmup--;
+    if (PERF.warmup === 0) PERF.sampleStart = now;
+  } else {
+    const i = PERF.n % 600;
+    PERF.frames[i] = now - PERF.last;
+    PERF.thinks[i] = PERF.thinkMs;
+    PERF.thinkTotal += PERF.thinkMs;
+    PERF.n++;
+    if (!PERF.done && now - PERF.sampleStart >= 20000) {
+      PERF.done = true;
+      console.log('[perf] ' + JSON.stringify(perfSummary()));
+    }
+  }
+  PERF.thinkMs = 0;
+  PERF.last = now;
+}
+
+function perfPct(arr, p) {
+  const s = Array.from(arr).sort((a, b) => a - b);
+  return s.length ? +s[Math.min(s.length - 1, Math.floor(p * s.length))].toFixed(3) : 0;
+}
+
+function perfSummary() {
+  const count = Math.min(PERF.n, 600);
+  const frames = PERF.frames.slice(0, count);
+  const thinks = PERF.thinks.slice(0, count);
+  let frameSum = 0;
+  for (let i = 0; i < count; i++) frameSum += frames[i];
+  const systems = {};
+  for (const k in PERF.systems) {
+    const s = PERF.systems[k];
+    systems[k] = {
+      avg: +(s.total / Math.max(1, s.count)).toFixed(3),
+      p95: perfPct(s.ring.slice(0, Math.min(s.count, 600)), 0.95),
+      max: +s.max.toFixed(3),
+    };
+  }
+  return {
+    frames: count,
+    frameAvg: +(frameSum / Math.max(1, count)).toFixed(3),
+    frameP50: perfPct(frames, 0.5),
+    frameP95: perfPct(frames, 0.95),
+    thinkAvg: +(PERF.thinkTotal / Math.max(1, PERF.n)).toFixed(3),
+    thinkP95: perfPct(thinks, 0.95),
+    systems,
+  };
+}
+
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(CFG.render.fogColor, CFG.render.fogDensity);
 
@@ -111,6 +198,9 @@ let walkPhase = 0;
 
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
+  if (PERF) perfFrameStart();
+
+  let _t = PERF ? performance.now() : 0; // update-total start (excludes render)
 
   gameState.tick(dt);
 
@@ -164,17 +254,25 @@ renderer.setAnimationLoop(() => {
     camera.lookAt(camTarget);
   }
 
-  takeDirector.update(dt);
+  if (PERF) { const a = performance.now(); takeDirector.update(dt); perfRecord(PERF.systems.takeDirector, performance.now() - a); }
+  else takeDirector.update(dt);
   interactions.update(dt);
   hud.setPrompt(takeDirector.busy ? null : interactions.currentTarget);
-  residents.update(dt, player.position);
-  horde.update(dt);
-  escalation.update(dt);
+  if (PERF) { const a = performance.now(); residents.update(dt, player.position); perfRecord(PERF.systems.residents, performance.now() - a); }
+  else residents.update(dt, player.position);
+  if (PERF) { const a = performance.now(); horde.update(dt); perfRecord(PERF.systems.horde, performance.now() - a); }
+  else horde.update(dt);
+  if (PERF) { const a = performance.now(); escalation.update(dt); perfRecord(PERF.systems.escalation, performance.now() - a); }
+  else escalation.update(dt);
   audioDirector.update(dt);
-  gore.update(dt, camera);
+  if (PERF) { const a = performance.now(); gore.update(dt, camera); perfRecord(PERF.systems.gore, performance.now() - a); }
+  else gore.update(dt, camera);
   dismember.update(dt);
   hud.update();
 
   input.update();
-  post.render();
+  if (PERF) perfRecord(PERF.systems.update, performance.now() - _t);
+
+  if (PERF) { const a = performance.now(); post.render(); perfRecord(PERF.systems.render, performance.now() - a); }
+  else post.render();
 });

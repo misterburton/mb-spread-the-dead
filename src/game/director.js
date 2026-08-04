@@ -66,17 +66,18 @@ export function createAudioDirector({ audio, gameState, player, residents, camer
       }
     }
 
-    // positional: horde converts away from the player
+    // positional: horde converts. Player-initiated converts are skipped —
+    // interactions.js already played the intimate convert sting for those.
+    // Horde converts are audible at ANY distance (gain falls off with range).
     for (const r of residents.list) {
       if (r.state === 'turned' && !turnedSeen.has(r.id)) {
         turnedSeen.add(r.id);
+        if (r.playerConverted) continue;
         const dx = r.group.position.x - player.position.x;
         const dz = r.group.position.z - player.position.z;
         const d = Math.hypot(dx, dz);
-        if (d > 4) {
-          const gain = Math.max(0.05, Math.min(0.5, 1 / d));
-          audio.play('convert', { gain, detune: (Math.random() - 0.5) * 300 });
-        }
+        const gain = Math.max(0.05, Math.min(0.5, 1 / Math.max(d, 1)));
+        audio.play('convert', { gain, detune: (Math.random() - 0.5) * 300 });
       }
     }
 

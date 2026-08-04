@@ -47,6 +47,9 @@ export function createEscalation({ residents, town, gameState, CFG, gore, player
   const sightRange2 = CFG.npc.sightRange * CFG.npc.sightRange;
   const R = CFG.town.worldRadius;
 
+  // perf harness: set by main.js when ?perf=1 — escThink bodies add into thinkMs
+  const perf = (typeof window !== 'undefined' && window.__perf) || null;
+
   // staggered escalation thinks (offset by index, like residents.js)
   for (let i = 0; i < list.length; i++) {
     const r = list[i];
@@ -312,7 +315,13 @@ export function createEscalation({ residents, town, gameState, CFG, gore, player
         r.escTimer -= dt;
         if (r.escTimer <= 0) {
           r.escTimer += thinkInterval;
-          escThink(r);
+          if (perf) {
+            const a = performance.now();
+            escThink(r);
+            perf.thinkMs += performance.now() - a;
+          } else {
+            escThink(r);
+          }
         }
       }
     }

@@ -30,6 +30,9 @@ export function createResidents(scene, town, CFG, onSeePlayer = null) {
 
   const blockedAt = (x, z) => isBlocked(navGrid, gridSize, origin, cellSize, x, z);
 
+  // perf harness: set by main.js when ?perf=1 — think bodies add into thinkMs
+  const perf = (typeof window !== 'undefined' && window.__perf) || null;
+
   // --- spawn spots -----------------------------------------------------------
   // valid sidewalk spawn points (not inside an obstacle), shuffled once
   const valid = town.spawnPoints.filter((p) => !blockedAt(p.x, p.z));
@@ -215,7 +218,13 @@ export function createResidents(scene, town, CFG, onSeePlayer = null) {
       r.thinkTimer -= dt;
       if (r.thinkTimer <= 0) {
         r.thinkTimer += thinkInterval;
-        think(r, playerPos);
+        if (perf) {
+          const a = performance.now();
+          think(r, playerPos);
+          perf.thinkMs += performance.now() - a;
+        } else {
+          think(r, playerPos);
+        }
       }
 
       if (r.state !== 'walk' && r.state !== 'flee') continue;

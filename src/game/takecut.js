@@ -74,6 +74,10 @@ export function createTakeDirector(camera, player) {
       camera.position.lerpVectors(camera.position, savedPos, k * 0.5);
       camera.quaternion.slerp(savedQuat, k * 0.5);
       if (k >= 1) {
+        // land EXACTLY on the saved transform — the asymptotic blend above
+        // leaves a ~0.2m residual that main.js would otherwise visibly snap
+        camera.position.copy(savedPos);
+        camera.quaternion.copy(savedQuat);
         state = 'third';
         const cb = onComplete;
         target = null; mode = null; onComplete = null;
