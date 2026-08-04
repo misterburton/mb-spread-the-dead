@@ -2,7 +2,7 @@
 // Bayer dither, vignette) and nearest-upscale to screen via a fullscreen quad
 // (compatible with WebGPU + WebGL2 backends). TSL throughout.
 import * as THREE from 'three/webgpu';
-import { texture, Fn, vec3, vec4, screenCoordinate, mix, uniform, fract, floor, dot, uv, float } from 'three/tsl';
+import { texture, Fn, vec2, vec3, vec4, screenCoordinate, mix, uniform, fract, floor, dot, uv, float } from 'three/tsl';
 import { CFG } from '../config.js';
 
 // ordered dither from pixel position (portable across WGSL/GLSL)
@@ -28,7 +28,7 @@ export function createPostPipeline(renderer, scene, camera) {
   const exposure = uniform(CFG.render.exposure ?? 1.0);
 
   const mat = new THREE.MeshBasicNodeMaterial();
-  const src = texture(rt.texture);
+  const src = texture(rt.texture, uv().mul(vec2(1, -1)).add(vec2(0, 1))); // flip Y: RT is bottom-up vs screen quad
 
   mat.colorNode = Fn(() => {
     const frag = src;

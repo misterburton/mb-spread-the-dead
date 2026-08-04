@@ -10,6 +10,7 @@ import { createGameState } from './game/state.js';
 import { createHUD } from './game/hud.js';
 import { createGore } from './game/gore.js';
 import { createInteractions } from './game/interactions.js';
+import { createAudio } from './game/audio.js';
 import { CFG } from './config.js';
 
 const canvas = document.getElementById('game');
@@ -59,8 +60,9 @@ const residents = createResidents(scene, town, CFG, (r) => {
 });
 gameState.state.womenTotal = residents.list.filter((r) => r.role === 'woman').length;
 
+const audio = await createAudio().catch(() => null); // non-fatal if fetch fails
 const interactions = createInteractions({
-  player, residents, takeDirector, gore, gameState, audio: null,
+  player, residents, takeDirector, gore, gameState, audio,
 });
 
 const hud = createHUD(document.getElementById('hud'), gameState);
@@ -109,11 +111,21 @@ renderer.setAnimationLoop(() => {
     // interact
     if (input.interact) interactions.tryInteract();
 
-    // third-person camera follow
-    const cd = CFG.camera.thirdDist, ch = CFG.camera.thirdHeight;
-    const cx = player.position.x - Math.sin(camYaw) * cd * Math.cos(camPitch);
-    const cz = player.position.z - Math.cos(camYaw) * cd * Math.cos(camPitch);
-    const cy = player.position.y + ch - Math.sin(camPitch) * cd;
+    // camera collision: keep the eye out of buildings
+    const camClear = (x, z) => !isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, x, z);
+
+    // third-person camera follow (shorten boom if a building blocks it)
+    let cd = CFG.camera.thirdDist;
+    const ch = CFG.camera.thirdHeight;
+    let cx = 0, cz = 0, cy = 0;
+    for (let k = 1; k >= 0.3; k -= 0.15) {
+      const d = cd * k;
+      cx = player.position.x - Math.sin(camYaw) * d * Math.cos(camPitch);
+      cz = player.position.z - Math.cos(camYaw) * d * Math.cos(camPitch);
+      if (camClear(cx, cz)) { cd = d; break; }
+      cd = d;
+    }
+    cy = player.position.y + ch - Math.sin(camPitch) * cd;
     camera.position.set(cx, cy, cz);
     camTarget.set(
       player.position.x + Math.sin(camYaw) * 2,

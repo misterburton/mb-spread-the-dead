@@ -83,7 +83,7 @@ export function createInteractions({ player, residents, takeDirector, gore, game
       applyTurn(target.group);
       target.state = 'turned';
       gameState.spendConvert();
-      // silent: no evidence, no body, no audio
+      audio?.convert(); // quiet, unsettling — not silent to the player
     });
   }
 
@@ -91,6 +91,7 @@ export function createInteractions({ player, residents, takeDirector, gore, game
   function startKill(target) {
     target.state = 'taken';
     kill = { target, phase: 'pre', holdT: 0, burst40: false };
+    audio?.kill(); // impact+wet+breath+tail layers, fired at cut
     takeDirector.start(target, 'kill', () => {
       finishKill(target);
       kill = null;
