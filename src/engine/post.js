@@ -53,15 +53,18 @@ export function createPostPipeline(renderer, scene, camera) {
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
       renderer.render(quadScene, quadCam);
-      // debug: probe center of RT once
+      // debug: probe center of the DEFAULT framebuffer (what's on screen)
       if (!window.__probeDone) {
         window.__probeDone = true;
-        renderer.readRenderTargetPixelsAsync(rt, rt.width / 2 | 0, rt.height / 2 | 0, 8, 8, new Uint8Array(4 * 64))
-          .then((buf) => {
-            let m = 0; for (let i = 0; i < buf.length; i += 4) m += buf[i] + buf[i + 1] + buf[i + 2];
-            console.info('[probe] rt-luma', (m / (3 * 64)).toFixed(1));
-          })
-          .catch((e) => console.info('[probe] rt-luma failed:', e.message));
+        const gl = renderer.getContext();
+        if (gl && gl.readPixels) {
+          const px = new Uint8Array(4 * 64);
+          gl.readPixels(gl.drawingBufferWidth / 2 | 0, gl.drawingBufferHeight / 2 | 0, 8, 8, gl.RGBA, gl.UNSIGNED_BYTE, px);
+          let m = 0; for (let i = 0; i < px.length; i += 4) m += px[i] + px[i + 1] + px[i + 2];
+          console.info('[probe] screen-luma', (m / (3 * 64)).toFixed(1));
+        } else {
+          console.info('[probe] no gl context');
+        }
       }
     },
     setDither: (v) => { amount.value = v; },
