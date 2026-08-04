@@ -137,6 +137,7 @@ renderer.setAnimationLoop(() => {
 
   takeDirector.update(dt);
   interactions.update(dt);
+  hud.setPrompt(takeDirector.busy ? null : interactions.currentTarget);
   residents.update(dt, player.position);
   gore.update(dt, camera);
   hud.update();

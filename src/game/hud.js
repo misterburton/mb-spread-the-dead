@@ -39,6 +39,23 @@ export function createHUD(root, gameState) {
   hordeEl.style.cssText = 'font-size:11px;color:#7a8a7a;';
   el.appendChild(hordeEl);
 
+  // context prompt: KISS / KILL based on current target (game decides, player never chooses)
+  const promptEl = document.createElement('div');
+  promptEl.style.cssText = `
+    position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%);
+    font-size: 22px; letter-spacing: 6px; color: #b8b0a0; display: none;
+    text-shadow: 0 2px 0 #000, 0 0 12px rgba(0,0,0,0.8);
+  `;
+  root.appendChild(promptEl);
+
+  function setPrompt(target) {
+    if (!target) { promptEl.style.display = 'none'; return; }
+    const kiss = target.role === 'woman';
+    promptEl.textContent = kiss ? 'KISS' : 'KILL';
+    promptEl.style.color = kiss ? '#9a8ab8' : '#b86a5a';
+    promptEl.style.display = 'block';
+  }
+
   function update() {
     const s = gameState.state;
     hungerFill.style.width = `${(s.hunger / CFG.hunger.max) * 100}%`;
@@ -57,5 +74,5 @@ export function createHUD(root, gameState) {
 
   gameState.onChange(update);
   update();
-  return { update };
+  return { update, setPrompt };
 }
