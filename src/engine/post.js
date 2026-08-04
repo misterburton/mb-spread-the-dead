@@ -53,6 +53,16 @@ export function createPostPipeline(renderer, scene, camera) {
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
       renderer.render(quadScene, quadCam);
+      // debug: probe center of RT once
+      if (!window.__probeDone) {
+        window.__probeDone = true;
+        renderer.readRenderTargetPixelsAsync(rt, rt.width / 2 | 0, rt.height / 2 | 0, 8, 8, new Uint8Array(4 * 64))
+          .then((buf) => {
+            let m = 0; for (let i = 0; i < buf.length; i += 4) m += buf[i] + buf[i + 1] + buf[i + 2];
+            console.info('[probe] rt-luma', (m / (3 * 64)).toFixed(1));
+          })
+          .catch((e) => console.info('[probe] rt-luma failed:', e.message));
+      }
     },
     setDither: (v) => { amount.value = v; },
     rt,

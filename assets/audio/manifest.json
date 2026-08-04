@@ -1,0 +1,36 @@
+{
+  "ambience": [
+    "ambience_01_quiet_calm_night_with_soft_crickets_dist.ogg",
+    "ambience_02_night_ambience_with_crickets.ogg",
+    "ambience_03_night_time_crickets_distant_dogs_and_tra.ogg",
+    "ambience_04_dark_analog_drone.ogg"
+  ],
+  "breath": [
+    "breath_01_monster_breath_1_wav.ogg",
+    "breath_02_heavy_breathing_1_wav.ogg",
+    "breath_03_young_male_s_heavy_breathing.ogg",
+    "breath_04_heavy_breathing_1_mp3.ogg"
+  ],
+  "convert": [
+    "convert_01_ascend_with_us_creepy_whisper.ogg",
+    "convert_02_creepy_whispering.ogg",
+    "convert_03_four_voices_whispering.ogg"
+  ],
+  "impact": [
+    "impact_01_wet_towel_floor_impact_punch_drop_bag_cl.ogg",
+    "impact_02_wet_plastic_slap_wav.ogg",
+    "impact_03_wet_slaps_wav.ogg",
+    "impact_04_crushing_a_lemon_1_5.ogg"
+  ],
+  "tail": [
+    "tail_01_house_room_tone.ogg",
+    "tail_02_jm_amb_room_tone_01_mono.ogg",
+    "tail_03_roomtone07.ogg"
+  ],
+  "wet": [
+    "wet_01_squelching_sfx_6.ogg",
+    "wet_02_flesh_being_squelched_wav.ogg",
+    "wet_03_foodmisc_int_mac_and_cheese_squelch_jvz_.ogg",
+    "wet_04_bloody_jab_squelch.ogg"
+  ]
+}
