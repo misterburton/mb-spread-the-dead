@@ -25,7 +25,8 @@ export function createInteractions({ player, residents, takeDirector, gore, game
   const witnessDot = Math.cos((CFG.npc.sightFovDeg * 0.5 * Math.PI) / 180);
 
   let currentTarget = null;
-  // kill-hold choreography scratch: { target, phase:'pre'|'hold', holdT, burst40 }
+  // kill-hold choreography scratch:
+  // { target, phase:'pre'|'hold', holdT, burst15, burst40, burst70, dripT }
   let kill = null;
 
   // targetable = alive and not already taken/turned/dead
@@ -135,6 +136,16 @@ export function createInteractions({ player, residents, takeDirector, gore, game
       );
     }
 
+    // dismemberment: tear 1-2 limbs off the corpse, flung out along the
+    // trail direction; originals are stumped at the joint
+    if (dismember) {
+      const severed = dismember.sever(target.group, ox, oz);
+      if (severed > 0) audio?.play('wet', { gain: 0.8 });
+    }
+
+    // arterial spray on a nearby building face (within 2m)
+    if (town) gore.wallSpray(tp.x, tp.z, town.obstacles);
+
     gameState.feedKill();
 
     // a witness upgrades the evidence to witnessedKill (applied once)
@@ -161,13 +172,33 @@ export function createInteractions({ player, residents, takeDirector, gore, game
       if (st === 'hold' && kill.phase === 'pre') {
         kill.phase = 'hold';
         kill.holdT = 0;
-        burstChestTowardPlayer(kill.target, 26, 1); // hold start: first spurt
+        burstChestAlongFacing(kill.target, 26, 1); // hold start: first spurt, at the viewer
       } else if (kill.phase === 'hold') {
         kill.holdT += dt;
+        if (!kill.burst15 && kill.holdT >= BURST_15_AT * CFG.take.holdSec) {
+          kill.burst15 = true;
+          burstChestTowardPlayer(kill.target, 22, 0.9); // 15%: second spurt
+        }
         if (!kill.burst40 && kill.holdT >= SECOND_BURST_AT * CFG.take.holdSec) {
           kill.burst40 = true;
-          burstChestTowardPlayer(kill.target, 30, 1.2); // 40%: second burst
+          burstChestTowardPlayer(kill.target, 30, 1.2); // 40%: third burst
           gore.stainCharacter(player.group ?? player, 0.7); // blood on her
+        }
+        if (!kill.burst70 && kill.holdT >= BURST_70_AT * CFG.take.holdSec) {
+          kill.burst70 = true;
+          burstChestTowardPlayer(kill.target, 34, 1.35); // 70%: late arterial emptying
+          gore.stainCharacter(kill.target.group, 0.9); // soak the victim
+        }
+        // slow drip pooling under the victim, every 0.4s of the hold
+        kill.dripT += dt;
+        if (kill.dripT >= DRIP_EVERY) {
+          kill.dripT -= DRIP_EVERY;
+          const tp = kill.target.group.position;
+          gore.addDecal(
+            tp.x + (Math.random() - 0.5) * 0.3,
+            tp.z + (Math.random() - 0.5) * 0.3,
+            0.16 + Math.random() * 0.14, 1.1, Math.random() * Math.PI
+          );
         }
       }
     }

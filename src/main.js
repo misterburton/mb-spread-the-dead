@@ -9,6 +9,7 @@ import { createTakeDirector } from './game/takecut.js';
 import { createGameState } from './game/state.js';
 import { createHUD } from './game/hud.js';
 import { createGore } from './game/gore.js';
+import { createDismember } from './game/dismember.js';
 import { createInteractions } from './game/interactions.js';
 import { createAudio } from './game/audio.js';
 import { createHorde } from './game/horde.js';
@@ -73,6 +74,7 @@ scene.add(graveLight);
 // systems
 const gameState = createGameState();
 const gore = createGore(scene);
+const dismember = createDismember(scene, gore);
 const takeDirector = createTakeDirector(camera, player);
 const residents = createResidents(scene, town, CFG, (r) => {
   // witness hook — escalation wave will use this
@@ -81,7 +83,7 @@ gameState.state.womenTotal = residents.list.filter((r) => r.role === 'woman').le
 
 const audio = await createAudio().catch(() => null); // non-fatal if fetch fails
 const interactions = createInteractions({
-  player, residents, takeDirector, gore, gameState, audio,
+  player, residents, takeDirector, gore, gameState, audio, town, dismember,
 });
 const horde = createHorde({ residents, town, gameState, CFG });
 const escalation = createEscalation({ residents, town, gameState, CFG, gore, player });
@@ -167,6 +169,7 @@ renderer.setAnimationLoop(() => {
   horde.update(dt);
   escalation.update(dt);
   gore.update(dt, camera);
+  dismember.update(dt);
   hud.update();
 
   input.update();
