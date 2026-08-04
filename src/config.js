@@ -14,15 +14,15 @@ export const CFG = {
   },
   hunger: {
     max: 100,
-    decayPerSec: 0.35,
-    killRestore: 34,        // feeding on a man
-    convertCost: 22,        // converting a woman costs hunger
-    rotRestore: 30,
+    decayPerSec: 0.55,
+    killRestore: 30,        // feeding on a man
+    convertCost: 26,        // converting a woman costs hunger
+    rotRestore: 26,
   },
   rot: {
     max: 100,
-    decayPerSec: 0.22,      // slow bodily decay
-    starveAccel: 0.5,       // extra decay/sec at zero hunger
+    decayPerSec: 0.28,      // slow bodily decay
+    starveAccel: 0.6,       // extra decay/sec at zero hunger
   },
   escalation: {
     // evidence thresholds → stage
@@ -30,7 +30,7 @@ export const CFG = {
     bodyEvidence: 1,
     witnessedKill: 3,
     witnessedConvert: 2,
-    thresholds: [0, 4, 12, 24, 40],
+    thresholds: [0, 6, 18, 30, 48],
   },
   take: {
     cutInSec: 0.22,         // hard cut to first person
@@ -61,7 +61,7 @@ export const CFG = {
     sightRange: 16,
     sightFovDeg: 100,
     thinkHz: 5,              // staggered AI updates — CPU budget
-    convertSpeed: 1.0,       // horde members seek victims (slower than a walker:
+    convertSpeed: 0.85,      // horde members seek victims (slower than a walker:
                              // converts happen by cornering, not chasing down)
     turnedFleeRadius: 4,     // living residents flee a turned closing within this
   },
