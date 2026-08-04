@@ -25,6 +25,7 @@ export function createPostPipeline(renderer, scene, camera) {
 
   const amount = uniform(CFG.render.ditherAmount);
   const tint = uniform(new THREE.Vector3(...CFG.render.gradeTint));
+  const exposure = uniform(CFG.render.exposure ?? 1.0);
 
   const mat = new THREE.MeshBasicNodeMaterial();
   const src = texture(rt.texture);
@@ -32,7 +33,7 @@ export function createPostPipeline(renderer, scene, camera) {
   mat.colorNode = Fn(() => {
     const frag = src;
     const luma = dot(frag.rgb, vec3(0.299, 0.587, 0.114));
-    let col = mix(vec3(luma), frag.rgb, 0.22).mul(tint);   // near-monochrome crush
+    let col = mix(vec3(luma), frag.rgb, 0.22).mul(tint).mul(exposure);   // near-monochrome crush + lift
     col = floor(col.mul(31.0)).add(0.5).div(31.0);         // color-depth banding
     const d = bayer(screenCoordinate.xy).sub(0.5).mul(amount.mul(1.0 / 48.0));
     col = col.add(d);                                      // ordered dither

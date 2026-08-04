@@ -20,9 +20,9 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 });
 
-// lighting: cold night town
-scene.add(new THREE.AmbientLight(0x2a3033, 2.0));
-const moon = new THREE.DirectionalLight(0x5a665e, 1.1);
+// lighting: cold night town — readable silhouettes, not pitch black
+scene.add(new THREE.AmbientLight(0x39423e, 2.6));
+const moon = new THREE.DirectionalLight(0x6a7668, 1.5);
 moon.position.set(-4, 8, -3);
 scene.add(moon);
 
@@ -30,8 +30,8 @@ scene.add(moon);
 const town = generateTown(scene, CFG);
 
 // lamp point lights (few, cheap)
-for (const lp of town.lampPositions.slice(0, 10)) {
-  const pl = new THREE.PointLight(0x8a8468, 2.2, 9, 1.8);
+for (const lp of town.lampPositions.slice(0, 16)) {
+  const pl = new THREE.PointLight(0x9a9070, 3.4, 11, 1.6);
   pl.position.set(lp.x, lp.y - 0.2, lp.z);
   scene.add(pl);
 }

@@ -50,8 +50,9 @@ export const CFG = {
     ps1ResolutionScale: 0.5,   // low internal resolution, upscaled
     snapVertex: 1 / 220,       // vertex jitter quantization
     fogColor: 0x0a0b0c,
-    fogDensity: 0.028,
-    gradeTint: [0.92, 0.95, 0.90],  // desaturated near-monochrome
+    fogDensity: 0.022,
+    gradeTint: [1.35, 1.42, 1.28],  // desaturated, faint sick green
+    exposure: 1.65,                  // lift for readable silhouettes
     ditherAmount: 1.0,
   },
   npc: {
