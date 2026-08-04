@@ -50,7 +50,12 @@ for (const lp of town.lampPositions.slice(0, 16)) {
 
 // player
 const player = makePlayer();
-player.position.set(town.playerSpawn.x, 0, town.playerSpawn.z);
+const startOverride = new URLSearchParams(location.search).get('start');
+if (startOverride === 'street') {
+  player.position.set(2, 0, 14); // mid main avenue, buildings in view
+} else {
+  player.position.set(town.playerSpawn.x, 0, town.playerSpawn.z);
+}
 scene.add(player);
 
 // systems
