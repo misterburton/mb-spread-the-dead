@@ -56,6 +56,7 @@ export async function createAudio() {
 
   return {
     ctx,
+    pools,
     play,
     startBed,
     // composite events — layered per Fight Club register

@@ -15,6 +15,7 @@ import { createAudio } from './game/audio.js';
 import { createHorde } from './game/horde.js';
 import { createEscalation } from './game/escalation.js';
 import { createFlow } from './game/flow.js';
+import { createAudioDirector } from './game/director.js';
 import { setJitter } from './engine/era.js';
 import { CFG } from './config.js';
 
@@ -90,6 +91,7 @@ const escalation = createEscalation({ residents, town, gameState, CFG, gore, pla
 if (audio && escalation.onPlayerShot !== undefined) {
   escalation.onPlayerShot = () => audio.play('impact', { gain: 0.9, rate: 1.6 }); // rifle crack placeholder
 }
+const audioDirector = createAudioDirector({ audio, gameState, player, residents, camera });
 
 const hud = createHUD(document.getElementById('hud'), gameState);
 const flow = createFlow(document.getElementById('hud'), gameState);
@@ -168,6 +170,7 @@ renderer.setAnimationLoop(() => {
   residents.update(dt, player.position);
   horde.update(dt);
   escalation.update(dt);
+  audioDirector.update(dt);
   gore.update(dt, camera);
   dismember.update(dt);
   hud.update();
