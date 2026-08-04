@@ -1,4 +1,4 @@
-import { cpSync, existsSync } from 'node:fs';
+import { cpSync } from 'node:fs';
 
 export default {
   build: {
@@ -8,6 +8,8 @@ export default {
         main: 'index.html',
         era: 'test/era.html',
         chars: 'test/chars.html',
+        affine: 'test/affine.html',
+        vignette: 'test/vignette.html',
       },
     },
   },

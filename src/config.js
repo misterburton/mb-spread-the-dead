@@ -51,8 +51,8 @@ export const CFG = {
     snapVertex: 1 / 220,       // vertex jitter quantization
     fogColor: 0x2d2d2a,           // gray-green murk — fog IS the draw distance
     fogDensity: 0.030,
-    gradeTint: [2.7, 2.85, 2.55],  // desaturated, faint sick green
-    exposure: 3.4,                   // heavy lift — PS1 horror is dark but READABLE
+    gradeTint: [1.5, 1.58, 1.42],  // desaturated, faint sick green
+    exposure: 1.9,                   // era grade lifts, doesn't wash
     ditherAmount: 1.0,
   },
   npc: {
