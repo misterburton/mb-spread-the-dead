@@ -57,9 +57,9 @@ const srv = await serve(port);
 const target = process.argv[2] || `http://127.0.0.1:${port}/`;
 
 const runs = [
-  ['desktop-webgl.png', 1280, 720, target + '?gl=1&start=street'],
-  ['tablet-webgl.png', 1024, 768, target + '?gl=1&start=street'],
-  ['graveyard-webgl.png', 1280, 720, target + '?gl=1'],
+  ['desktop-webgl.png', 1280, 720, target + '?gl=1&start=street&shot=1'],
+  ['tablet-webgl.png', 1024, 768, target + '?gl=1&start=street&shot=1'],
+  ['graveyard-webgl.png', 1280, 720, target + '?gl=1&shot=1'],
 ];
 
 let fail = 0;

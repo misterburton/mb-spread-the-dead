@@ -32,6 +32,8 @@ export function createFlow(root, gameState) {
   };
   window.addEventListener('pointerdown', begin, { once: false });
   window.addEventListener('keydown', begin);
+  // headless/test escape hatch: skip the intro card
+  if (new URLSearchParams(location.search).has('shot')) begin();
 
   let overShown = false;
   gameState.onChange((what, s) => {

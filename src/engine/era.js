@@ -65,4 +65,11 @@ export function affineTexture(tex, affine) {
   return texture(tex, affine.uvw.div(affine.w));
 }
 
+// Backend probe for gating WebGPU-only TSL paths.
+// GLSL noperspective interpolation breaks SwiftShader WebGL2 validation, so
+// affine warp must be skipped on the WebGL2 fallback.
+export function isWebGL2() {
+  return new URLSearchParams(location.search).get('gl') === '1';
+}
+
 export function setJitter(v) { jitterAmount.value = v; }

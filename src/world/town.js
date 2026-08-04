@@ -5,7 +5,7 @@ import {
   texSiding, texBrick, texShingle, texAsphalt, texConcrete,
   texGround, texStone, texWood, texWindow,
 } from './textures.js';
-import { jitterPosition, affineUV, affineTexture } from '../engine/era.js';
+import { jitterPosition, affineUV, affineTexture, isWebGL2 } from '../engine/era.js';
 
 // Shared clip-space vertex snap (PS1 wobble) — one node graph, applied to
 // every world material below via positionNode.
@@ -25,7 +25,10 @@ export function mat(hex) {
 // and `map` stays unset; the repeat is baked into the affine UV varying
 // (texture() with an explicit uv node skips the texture matrix).
 function tmat(tex, repeat = [1, 1], tint = 0xffffff, affine = false) {
-  affine = false; // BISECT: temporarily disable affine path
+  // Affine warp is WebGPU-only: GLSL `noperspective` on WebGL2 breaks SwiftShader
+  // shader validation (see era.js). WebGL2 keeps perspective-correct maps — the
+  // dominant era cue (vertex jitter) works on both backends.
+  affine = affine && !isWebGL2();
   const key = tex.uuid + repeat + tint + (affine ? ':a' : '');
   if (!matCache.has(key)) {
     const t = tex.clone();
