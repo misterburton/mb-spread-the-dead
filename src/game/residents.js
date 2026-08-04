@@ -18,7 +18,7 @@ const FLEE_SEC = 3;
 const ARRIVE = 0.35;
 const WANDER_MAX = 12;         // meters
 
-export function createResidents(scene, town, CFG, onSeePlayer = null) {
+export function createResidents(scene, town, CFG, onSeePlayer = null, gameState = null) {
   const { navGrid, gridSize, origin, cellSize } = town;
   const N = CFG.town.residents;
   const N_PAL = CFG.town.pallbearers;
@@ -27,6 +27,7 @@ export function createResidents(scene, town, CFG, onSeePlayer = null) {
   const thinkInterval = 1 / CFG.npc.thinkHz;
   const walkSpeed = CFG.npc.walkSpeed;
   const fleeSpeed = CFG.npc.fleeSpeed;
+  const TURNED_FLEE_R2 = CFG.npc.turnedFleeRadius * CFG.npc.turnedFleeRadius;
 
   const blockedAt = (x, z) => isBlocked(navGrid, gridSize, origin, cellSize, x, z);
 
@@ -176,8 +177,35 @@ export function createResidents(scene, town, CFG, onSeePlayer = null) {
   const think = (r, playerPos) => {
     const pos = r.group.position;
 
-    // spot the player → flee (witness/escalation hooks arrive in a later wave)
-    if (playerPos && (r.state === 'idle' || r.state === 'walk')) {
+    // flee a TURNED resident closing in — at ANY stage. A pale shambling dead
+    // woman is not an "alertness" question (that's what the stage ladder gates);
+    // anyone runs from a corpse that walks up to them. This is also what keeps
+    // the horde's exponential in check: hunters (convertSpeed < walkSpeed) can
+    // only convert the cornered or the standing, so the snowball is a trickle
+    // until the player feeds it kisses. (Stage 3+ escalation adds a wider 6m
+    // net for the same behavior — screening — they compose without fighting.)
+    if (r.state === 'idle' || r.state === 'walk') {
+      for (let i = 0; i < list.length; i++) {
+        const o = list[i];
+        if (o.state !== 'turned') continue;
+        const odx = pos.x - o.group.position.x;
+        const odz = pos.z - o.group.position.z;
+        if (odx * odx + odz * odz < TURNED_FLEE_R2) {
+          r.state = 'flee';
+          r.speed = fleeSpeed;
+          r.fleeTimer = FLEE_SEC;
+          pickFleeTarget(r, odx, odz);
+          return;
+        }
+      }
+    }
+
+    // spot the player → flee. Gated on stage>=1: at stage 0 the town is
+    // OBLIVIOUS (per the escalation ladder) — nobody runs from a woman walking
+    // down the street. From suspicious on, her proximity reads wrong and they run.
+    // (Fleeing the TURNED is different — that's reflex, handled above at all stages.)
+    const townAlert = !gameState || gameState.state.stage >= 1;
+    if (playerPos && townAlert && (r.state === 'idle' || r.state === 'walk')) {
       const pdx = pos.x - playerPos.x;
       const pdz = pos.z - playerPos.z;
       if (pdx * pdx + pdz * pdz < FLEE_RADIUS2) {
@@ -203,8 +231,14 @@ export function createResidents(scene, town, CFG, onSeePlayer = null) {
       if (r.fleeTimer <= 0) {
         enterIdle(r);
       } else if (playerPos) {
-        // keep heading away from the player, re-jittered each think
-        pickFleeTarget(r, pos.x - playerPos.x, pos.z - playerPos.z);
+        // keep heading away from the player — but only while she's actually
+        // close. If she's moved off, leave the heading alone: escalation's
+        // flee-from-turned (stage 3+) may own this flight, and re-jittering
+        // away from a distant player here made residents zigzag between two
+        // threat sources every other think tick.
+        const pdx = pos.x - playerPos.x;
+        const pdz = pos.z - playerPos.z;
+        if (pdx * pdx + pdz * pdz < FLEE_RADIUS2 * 1.8) pickFleeTarget(r, pdx, pdz);
       }
     }
   };

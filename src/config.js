@@ -61,7 +61,9 @@ export const CFG = {
     sightRange: 16,
     sightFovDeg: 100,
     thinkHz: 5,              // staggered AI updates — CPU budget
-    convertSpeed: 1.2,       // horde members seek victims
+    convertSpeed: 1.0,       // horde members seek victims (slower than a walker:
+                             // converts happen by cornering, not chasing down)
+    turnedFleeRadius: 4,     // living residents flee a turned closing within this
   },
   run: {
     targetMinutes: [20, 30],

@@ -27,6 +27,13 @@ const renderer = await createRenderer(canvas);
 const jitterParam = new URLSearchParams(location.search).get('jitter');
 setJitter(jitterParam === 'strong' ? 1 / 60 : jitterParam === 'off' ? 0 : CFG.render.snapVertex);
 
+// --- pacing simulation (?sim / ?sim=fast) -------------------------------------
+// ?sim=fast scales game dt by 10 and loads the autopilot (src/game/sim.js),
+// which drives the player through the real input path and logs '[SIM]' pacing
+// milestones. window.__sim exposes hooks for external driving/inspection.
+const simParam = new URLSearchParams(location.search).get('sim');
+const SIM_DT = simParam === 'fast' ? 10 : simParam !== null ? 1 : 0;
+
 // --- perf harness (?perf=1) ---------------------------------------------------
 // Ring buffer of the last 600 frame deltas + per-system ms timings, exposed as
 // window.__perf for scripts/perf.mjs. AI think bodies (residents / horde /
@@ -166,7 +173,7 @@ const dismember = createDismember(scene, gore);
 const takeDirector = createTakeDirector(camera, player);
 const residents = createResidents(scene, town, CFG, (r) => {
   // witness hook — escalation wave will use this
-});
+}, gameState);
 gameState.state.womenTotal = residents.list.filter((r) => r.role === 'woman').length;
 
 const audio = await createAudio().catch(() => null); // non-fatal if fetch fails
@@ -186,6 +193,25 @@ const flow = createFlow(document.getElementById('hud'), gameState);
 // input
 const input = createInput(canvas, document.getElementById('touch-ui'));
 
+// pacing autopilot + external hooks (only with ?sim)
+let simDriver = null;
+if (simParam !== null) {
+  const { createSimDriver } = await import('./game/sim.js');
+  simDriver = createSimDriver({
+    player, residents, gameState, interactions, takeDirector, input, town, CFG,
+    steer: (yaw) => { camYaw = yaw; },
+  });
+  window.__sim = {
+    player, residents, gameState, interactions, takeDirector, town, camera, CFG,
+    state: () => ({ ...gameState.state }),
+    teleport: (x, z) => {
+      if (isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, x, z)) return false;
+      player.position.x = x; player.position.z = z; return true;
+    },
+    interact: () => interactions.tryInteract(),
+  };
+}
+
 // third-person camera state
 let camYaw = Math.PI;
 let camPitch = -0.22;
@@ -196,26 +222,34 @@ const post = createPostPipeline(renderer, scene, camera);
 const clock = new THREE.Clock();
 let walkPhase = 0;
 
-renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.05);
+const frame = (render = true) => {
+  let dt = Math.min(clock.getDelta(), 0.05);
+  if (SIM_DT > 1) dt *= SIM_DT; // ?sim=fast: 10x game-time for pacing runs
   if (PERF) perfFrameStart();
 
   let _t = PERF ? performance.now() : 0; // update-total start (excludes render)
 
   gameState.tick(dt);
+  // autopilot runs before the movement block: it writes input.move/sprint and
+  // camYaw, which the block below consumes this frame (input.update() at frame
+  // end would otherwise clear them first)
+  if (simDriver) simDriver.update(dt);
 
   if (!takeDirector.busy && !gameState.state.over && flow.started) {
     // look
     camYaw -= input.look.dx * 0.0032;
     camPitch = THREE.MathUtils.clamp(camPitch - input.look.dy * 0.0028, -0.9, 0.35);
 
-    // move (camera-relative)
+    // move (camera-relative). Basis: forward = (sin,cos), right = (cos,-sin);
+    // world = right*mv.x + forward*(-mv.y) — mv.y = -1 is "W" / stick-up.
+    // (dz previously had both signs flipped: W walked backward at camYaw=0
+    //  and strafe was mirrored — movement was wrong at every diagonal.)
     const mv = input.move;
     const spd = CFG.player.speed * (input.sprint ? CFG.player.sprintMul : 1);
     if (mv.x !== 0 || mv.y !== 0) {
       const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
       const dx = (mv.x * cos - mv.y * sin) * spd * dt;
-      const dz = (mv.x * sin + mv.y * cos) * spd * dt;
+      const dz = (-mv.x * sin - mv.y * cos) * spd * dt;
       const nx = player.position.x + dx;
       const nz = player.position.z + dz;
       if (!isBlocked(town.navGrid, town.gridSize, town.origin, town.cellSize, nx, player.position.z)) player.position.x = nx;
@@ -260,8 +294,8 @@ renderer.setAnimationLoop(() => {
   hud.setPrompt(takeDirector.busy ? null : interactions.currentTarget);
   if (PERF) { const a = performance.now(); residents.update(dt, player.position); perfRecord(PERF.systems.residents, performance.now() - a); }
   else residents.update(dt, player.position);
-  if (PERF) { const a = performance.now(); horde.update(dt); perfRecord(PERF.systems.horde, performance.now() - a); }
-  else horde.update(dt);
+  if (PERF) { const a = performance.now(); horde.update(dt, player.position); perfRecord(PERF.systems.horde, performance.now() - a); }
+  else horde.update(dt, player.position);
   if (PERF) { const a = performance.now(); escalation.update(dt); perfRecord(PERF.systems.escalation, performance.now() - a); }
   else escalation.update(dt);
   audioDirector.update(dt);
@@ -273,6 +307,18 @@ renderer.setAnimationLoop(() => {
   input.update();
   if (PERF) perfRecord(PERF.systems.update, performance.now() - _t);
 
+  if (!render) return; // sim fast-forward: most ticks skip pixels entirely
   if (PERF) { const a = performance.now(); post.render(); perfRecord(PERF.systems.render, performance.now() - a); }
   else post.render();
-});
+};
+
+if (simParam !== null) {
+  // pacing sim: rAF does NOT advance under --virtual-time-budget in new
+  // headless Chrome, but setTimeout chains fast-forward perfectly. Drive the
+  // loop with 16ms timers; render 1 tick in 30 (pacing needs state, not pixels).
+  let n = 0;
+  const step = () => { frame(++n % 30 === 0); setTimeout(step, 16); };
+  step();
+} else {
+  renderer.setAnimationLoop(() => frame(true));
+}

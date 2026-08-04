@@ -234,11 +234,10 @@ export function createEscalation({ residents, town, gameState, CFG, gore, player
     }
   };
 
-  // state.js exposes no public 'over' setter (checked) — mutate directly and
-  // poke its private emit through addEvidence(0) so listeners refresh.
+  // state.js owns run-end via endRun() (emits 'over' so flow.js shows the
+  // overlay) — direct state.over mutation would leave the overlay hidden.
   const endCordon = () => {
-    gameState.state.over = 'cordon';
-    gameState.addEvidence(0);
+    gameState.endRun('cordon');
   };
 
   // --- stage transitions (one-time setups; thresholds can jump) --------------
