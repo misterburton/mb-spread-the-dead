@@ -51,8 +51,8 @@ export const CFG = {
     snapVertex: 1 / 220,       // vertex jitter quantization
     fogColor: 0x0a0b0c,
     fogDensity: 0.022,
-    gradeTint: [2.2, 2.3, 2.1],    // desaturated, faint sick green
-    exposure: 3.0,                   // lift for readable silhouettes
+    gradeTint: [2.7, 2.85, 2.55],  // desaturated, faint sick green
+    exposure: 3.4,                   // heavy lift — PS1 horror is dark but READABLE
     ditherAmount: 1.0,
   },
   npc: {
